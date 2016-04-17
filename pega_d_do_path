@@ -1,0 +1,1 @@
+xml sel -t -m '//_:path' -v './@d' -n teste.svg
