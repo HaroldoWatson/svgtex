@@ -96,10 +96,16 @@ def tokenize(path_linha_it):
 #generator de paths a partir dos tokens
 def pathitize(token_it):
   currpath = None
+  currfunc = None
+  def token_M(token_it):
+    return lambda s: 
   for t in token_it:
+    currfunc = tkn_funs[t]()
     try:
       n = float(t)
-
+      
+    except ValueError:
+      
 
 
 #dis gon be good
