@@ -95,7 +95,7 @@ def tokenize(path_linha_it):
 
 #generator de paths a partir dos tokens
 def pathitize(token_it):
-  currpath = None
+  currpath = 
   for t in token_it:
     try:
       n = float(t)
