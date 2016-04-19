@@ -97,16 +97,25 @@ def tokenize(path_linha_it):
 def pathitize(token_it):
   currpath = None
   currfunc = None
-  def token_M(token_it):
-    return lambda s: 
+  vb_matrix = [1,0,0,1,0,0]
+  path = {'id':0, 'd':[], 'matrix':[1,0,0,1,0,0]}
+
   for t in token_it:
     currfunc = tkn_funs[t]()
     try:
       n = float(t)
-      
+      path['d'].append(n)
     except ValueError:
-      
+      if (t == 'viewBox'):
+        viewbox = [float(f) for f in IT.islice(token_it, 4)]
+        
 
+
+def suntherland_hodgman(path, uvtri):
+  virt_uvtri = matrix_mul(path.inv_matrix, uvtri)
+  linea, lineb, linec = lines_from_tri(virt_uvtri)]
+  for p in cut_path(cut_path(cut_path(path.d, linea), lineb) linec ):
+    yield p
 
 #dis gon be good
 path_linha_it = (l for l in sys.stdin)
@@ -114,7 +123,7 @@ token_it = tokenize(path_linha_it)
 path_it = pathitize(token_it)
 #uvtri_linha_it = (l for l in uvfile)
 #uvtri_lista = uvtri_listize(uvtri_linha_it)
-#final_paths = (suntherland_hodgman_it(path, uvtrilista) for path in path_it)
+#final_paths = ((suntherland_hodgman(path, uvtri) for uvtri in uvtri_lista) for path in path_it)
 #output_paths(final_paths)
 
 for t in token_it:

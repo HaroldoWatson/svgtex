@@ -4,8 +4,8 @@ function bleu(c){
 
 BEGIN {
   bleu(n)
-  #a = n
-  print n["a"]
+  a = n
+  print a["a"]
 }
 
 

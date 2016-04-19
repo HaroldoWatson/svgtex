@@ -7,6 +7,7 @@ xmlns:svg="http://www.w3.org/2000/svg">
 <xsl:template match="text()"></xsl:template>
 
 <xsl:template match="svg:path">
+    <xsl:text>id </xsl:text>
     <xsl:number level="any" />
     <xsl:text>:</xsl:text>
     <xsl:for-each select="(ancestor::*|.)[@transform]">
