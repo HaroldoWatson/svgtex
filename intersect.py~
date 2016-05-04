@@ -39,18 +39,22 @@ NEXT_STATE["Ly"] = "Lx"
 
 #seg = [s1, s0]
 #clip_plane = [[N], R0N]
-def seg_clip(s0, s1, n, r0n):
+def seg_clip(isfirst, op, s0, s1, n, r0n):
+  s0n = np.dot(s0,n)
+  if isfirst and s0n > 0:
+    yield "M", s0
   den = np.dot((s1 - s0),n)
   if den != 0:
-    t = (r0n - np.dot(s0,n))/den
+    t = (r0n - s0n)/den
     if t >0 and t < 1:
-      if den < 0:
-        yield s0
-      yield (t*s1 + (1-t)*s0)
-  if np.dot(s1,n) > r0n:
-    yield s1
+      yield "L", (t*s1 + (1-t)*s0)
+  if op == 'Z':
+    yield 'Z', 0
+  else:
+    if np.dot(s1,n) > r0n:
+      yield op, s1
   
-    
+
 def path_clip(path_d, clip_plane):
   path_d = path_d
   clip_plane = clip_plane
@@ -60,29 +64,42 @@ def path_clip(path_d, clip_plane):
   firstpoint = currpoint
   args = {}  
   for tkn in path_d:
+    op = False
     if tkn in NEXT_STATE:
       state = tkn
     else:
       args[state] = float(tkn)
     if state == "my":
-      currpoint = currpoint + np.array([args["mx"],args["my"]]) 
+      op = "M"
+      s1 = currpoint + np.array([args["mx"],args["my"]]) 
     elif state == "My":
-      currpoint = np.array([args["Mx"],args["My"]])
+      op = "M"
+      s1 = np.array([args["Mx"],args["My"]])
     elif state == "ly":
-      s1 = currpoint + [args["lx"],args["ly"]]
-      for s in seg_clip(currpoint, s1,  clip_plane[0], clip_plane[1]):
-        if isfirst:
-          yield "M"
-          yield s[0]
-          yield s[1]
-          isfirst = False
-        else:
-          yield "L"
-          yield s[0]
-          yield s[1]
+      op = "L"
+      s1 = currpoint + np.array([args["lx"],args["ly"]])
+    elif state == "Ly":
+      op = "L"
+      s1 = np.array([args["Lx"],args["Ly"]])
+    elif state == "z" or state == "Z":
+      op = 'Z'
+
+    if op == 'M':
+      currpoint = s1
+      isfirst = True
+      firstpoint = s1
+    elif op == 'L' or op == 'Z': 
+      for opchar, p in seg_clip(isfirst, op, currpoint, s1, clip_plane[0], clip_plane[1]):
+          yield opchar
+          if opchar != 'Z':
+            yield p[0]
+            yield p[1]
+      currpoint = s1
     state = NEXT_STATE[state]
   
-d = "m 0 0.5 l 1 0".split(" ")
-plane = [[-1,1], 0]
-print (" ".join(path_clip(d, plane) )) 
+d = "m 0 0.5 L 1 0 z".split(" ")
+plane = [[1,-1], 0]
+
+for l in sys.stdin:
+  
 

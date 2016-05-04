@@ -4,7 +4,7 @@ global M = eye(3);
 arg_list = argv();
 vb = eval(arg_list{1});
 vb = [vb(3) 0 vb(1); 0 vb(4) vb(2); 0 0 1];
-IVB = inv(vb); #inverse viewbox matrix
+global IVB = eye(3);#inv(vb); #inverse viewbox matrix
 M=IVB;
 
 
