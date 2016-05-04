@@ -4,6 +4,22 @@ global prevpoint = [0,0];
 global subpoint = [0,0];
 global path_continuous = 0;
 
+NEXT_STATE.m = "mx"
+NEXT_STATE.l = "lx"
+NEXT_STATE.M = "Mx"
+NEXT_STATE.L = "Lx"
+NEXT_STATE.z = "z"
+NEXT_STATE.Z = "Z"
+
+NEXT_STATE.mx = "my"
+NEXT_STATE.my = "lx"
+NEXT_STATE.lx = "ly"
+NEXT_STATE.ly = "lx"
+NEXT_STATE.Mx = "My"
+NEXT_STATE.My = "Lx"
+NEXT_STATE.Lx = "Ly"
+NEXT_STATE.Ly = "Lx"
+
 function path_M(args)
   global path_continuous
   global subpoint
@@ -18,7 +34,7 @@ function path_m(args)
   path_M(args)
 endfunction
 
-function path_L(line, args)
+function path_l(line, args)
   s0 = prevpoint
   sd = args(1:2)
   den = sd*line.N
@@ -40,44 +56,39 @@ function path_L(line, args)
       endif
     endif
   endif
+
 endfunction
 
-pathsegs.m.nargs = 2
-pathsegs.m.f = @path_m
-args = argv()
-line_in = eval(args{1})
 
+
+STATE_FUNCS.ly = @path_l
 
 while(1)
-  global prevpoint;
   in = fgetl(stdin);
   if length(in) < 2
     break;
   endif
   
   inarr = strsplit(in,':');
-  pathid = str2double(inarr{1});
+  pathid = inarr{1};
   pathd = strsplit(inarr{2});
   pathmtx = [eval(inarr{3}); 0 0 1];
   prevpoint = [0,0];
   
-  nargs = 2
-  argi = 1
-  currfunc = @path_m
-  args = [0 0 0 0 0 0]
+
   
   for dtoken = pathd
-    if isfield(pathsegs, dtoken)
-      seg = getfield(pathsegs,dtoken)
-      nargs = seg.nargs
-      currfunc = seg.f
+    if isfield(NEXT_STATE, dtoken)
+      state = getfield(NEXT_STATE,dtoken);
     else
-      args(argi) = str2double(dtoken)
-      argi = argi + 1
+      setfield(args, state, str2double(dtoken)); 
     endif
-    if (argi > nargs)
-      currfunc(args)
-      argi = 1
+    if isfield(STATE_FUNCS, state)
+      getfield(STATE_FUNCS,state)(args);
     endif
+    state = getfield(NEXT_STATE,state);
   endfor
 endwhile
+
+
+
