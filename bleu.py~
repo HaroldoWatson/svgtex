@@ -1,0 +1,5 @@
+a = 32
+
+def blum():
+  a = a + 1
+  print(a)
