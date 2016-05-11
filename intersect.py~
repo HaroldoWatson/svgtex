@@ -19,23 +19,6 @@ for l in sys.stdin:
   a,b = l.split(" ")
   print(a + b)
 '''
-NEXT_STATE = {}
-NEXT_STATE["m"] = "mx"
-NEXT_STATE["l"] = "lx"
-NEXT_STATE["M"] = "Mx"
-NEXT_STATE["L"] = "Lx"
-NEXT_STATE["z"] = "z"
-NEXT_STATE["Z"] = "Z"
-
-NEXT_STATE["mx"] = "my"
-NEXT_STATE["my"] = "lx"
-NEXT_STATE["lx"] = "ly"
-NEXT_STATE["ly"] = "lx"
-NEXT_STATE["Mx"] = "My"
-NEXT_STATE["My"] = "Lx"
-NEXT_STATE["Lx"] = "Ly"
-NEXT_STATE["Ly"] = "Lx"
-
 
 #seg = [s1, s0]
 #clip_plane = [[N], R0N]
@@ -54,52 +37,85 @@ def seg_clip(isfirst, op, s0, s1, n, r0n):
     if np.dot(s1,n) > r0n:
       yield op, s1
   
+def is_on_visible_side(point, plane):
+  return np.dot(plane[0], point)
 
-def path_clip(path_d, clip_plane):
-  path_d = path_d
-  clip_plane = clip_plane
-  state = "M"
-  currpoint = np.array([0,0])
-  isfirst = True
-  firstpoint = currpoint
-  args = {}  
-  for tkn in path_d:
-    op = False
-    if tkn in NEXT_STATE:
-      state = tkn
-    else:
-      args[state] = float(tkn)
-    if state == "my":
-      op = "M"
-      s1 = currpoint + np.array([args["mx"],args["my"]]) 
-    elif state == "My":
-      op = "M"
-      s1 = np.array([args["Mx"],args["My"]])
-    elif state == "ly":
-      op = "L"
-      s1 = currpoint + np.array([args["lx"],args["ly"]])
-    elif state == "Ly":
-      op = "L"
-      s1 = np.array([args["Lx"],args["Ly"]])
-    elif state == "z" or state == "Z":
-      op = 'Z'
+class path_clipper:
+  def __init__(self, plane, outfunc):
+    self.M([0,0])
+    self.plane = plane
+    self.outfunc = outfunc
 
-    if op == 'M':
-      currpoint = s1
-      isfirst = True
-      firstpoint = s1
-    elif op == 'L' or op == 'Z': 
-      for opchar, p in seg_clip(isfirst, op, currpoint, s1, clip_plane[0], clip_plane[1]):
-          yield opchar
-          if opchar != 'Z':
-            yield p[0]
-            yield p[1]
-      currpoint = s1
-    state = NEXT_STATE[state]
+  def M(self, args):
+    self.isfirst = True
+    self.currpoint = np.array(args)
+    self.firstpoint = self.currpoint
+
+  def m(self, args):
+    self.M(self.currpoint + np.array(args))
+
+  def L(self, args):
+    if self.isfirst and is_on_visible_side():
+      self.outfunc("M {} {} ".format( self.currpoint[0], self.currpoint[1]) )
+    self.outfunc("L {} {} ".format(args[0], args[1]) )
+
+  def l(self, args):
+    self.L(self.currpoint + np.array(args))
+
+  def z(self, args):
+    if not self.isfirst:
+      outfile.write("z")
+    
+  def Z(self, args):
+    self.z(args)
+
+  def out_connectpoint():
+    
+  #vec_poly eh um poly de vetores, representando a funcao parametrica de t (uma matrix 2 x n)
+  def intersect_poly(self, vec_poly):
+    parampoly = self.plane[0]*vec_poly
+    roots = np.roots(parampoly)
+    
+
+PATH_COMMAND = {
+'m' : {"next":"l", "nargs":2},
+'M' : {"next":"L", "nargs":2},
+'l' : {"next":"l", "nargs":2},
+'L' : {"next":"L", "nargs":2},
+'z' : {"next":"m", "nargs":0},
+'Z' : {"next":"M", "nargs":0}
+}
+
+def parse_d(d, sink):
+  args = []
+  nargs = 2
+  currcommand = 'M'
+  for tkn in d.split(" "):
+    try:
+      arg = float(tkn)
+      args.append(arg)
+      nargs = nargs - 1
+    except ValueError:
+      currcommand = tkn
+      nargs = PATH_COMMAND[tkn]['nargs']
+    if nargs == 0:
+      getattr(sink, currcommand)(args)
+      args = []
+      currcommand = PATH_COMMAND[currcommand]['next']      
+      nargs = PATH_COMMAND[currcommand]['nargs']
   
-d = "m 0 0.5 L 1 0 z".split(" ")
+d = "m 0 0.5 L 1 0 z"
 plane = [[1,-1], 0]
 
-for l in sys.stdin:
-  
+parse_d(d, path_clipper(plane, sys.stdout.write))
+print()
+#main
+
+#argumento tem arquivo com as retas
+
+
+#for l in sys.stdin:
+#  path_id, path_d, path_matrix = parse_path(l)
+
+
 

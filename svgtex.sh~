@@ -9,6 +9,9 @@ matrices_f='matrices.txt'
 #xsltproc extrai_d.xsl $1 | tee "$paths_f" | cut -d: -f2 | sed -r -f massage_matrix.sed | octave -q -f process_matrix.m "$viewbox" > "$matrices_f"
 #cut -d: -f1,3 < "$paths_f" | bash massage_d.sh | paste -d: - "$matrices_f" | python3 intersect.py
 
+
+#precisam ser tres cortes (reentrancia)
+
 #triangulos visiveis
 trifile=triangulos.txt 
 
@@ -16,7 +19,13 @@ trifile=triangulos.txt
 uvfile=uv.txt
 
 IFS=":"
-xsltproc extrai_d.xsl $1 | {
+xsltproc extrai_d.xsl $1 | massageia | corte $reta1 | corte $reta2 | corte $reta3 
+join_path_uv $uv 
+
+#pathid {cutgroup} {d}
+
+cat triangulos | clip_view $clip_data | join uv | 
+{
 while read pathid pathtransf pathd
 do
 pathtransf=$(sed -r -f massage_matrix.sed <<< $pathtransf)

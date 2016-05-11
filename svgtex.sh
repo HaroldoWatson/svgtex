@@ -20,6 +20,10 @@ uvfile=uv.txt
 
 IFS=":"
 xsltproc extrai_d.xsl $1 | massageia | corte $reta1 | corte $reta2 | corte $reta3 
+join_path_uv $uv 
+
+#pathid {cutgroup} {d}
+
 cat triangulos | clip_view $clip_data | join uv | 
 {
 while read pathid pathtransf pathd
