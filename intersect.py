@@ -1,45 +1,12 @@
 import numpy as np
 import sys
+poly = np.polynomial.polynomial
 
-'''def main(paths, clipgroups):
-  for path_id, path_matrix, path_d in paths:
-    for clipgroup in clipgroups:
-      proj_matrix, plane1, plane2, plane3 = transform_clipgroup(path_matrix, clipgroup)
-      res = [path_clip( path_clip(path_clip(path_d, plane1), plane2), plane3)]
-      if len(res) > 0:
-        ?
+CMATRIX = np.array([[1,0,0,0], [-3,3,0,0], [3,-6,3,0], [-1,3,-3,1]])
+QMATRIX = np.array([[1,0,0],[-2,2,0],[1,-2,1]])
+#estou fazendo em py pq octave n tem pass by reference
 
-def genpathsfromstdin():
-  
-
-main(sys.stdin, uvfile)gs
-
-
-for l in sys.stdin:
-  a,b = l.split(" ")
-  print(a + b)
-'''
-
-#seg = [s1, s0]
-#clip_plane = [[N], R0N]
-def seg_clip(isfirst, op, s0, s1, n, r0n):
-  s0n = np.dot(s0,n)
-  if isfirst and s0n > 0:
-    yield "M", s0
-  den = np.dot((s1 - s0),n)
-  if den != 0:
-    t = (r0n - s0n)/den
-    if t >0 and t < 1:
-      yield "L", (t*s1 + (1-t)*s0)
-  if op == 'Z':
-    yield 'Z', 0
-  else:
-    if np.dot(s1,n) > r0n:
-      yield op, s1
-  
-def is_on_visible_side(point, plane):
-  return np.dot(plane[0], point)
-
+#plane é [[nx, ny],dist]
 class path_clipper:
   def __init__(self, plane, outfunc):
     self.M([0,0])
@@ -54,14 +21,96 @@ class path_clipper:
   def m(self, args):
     self.M(self.currpoint + np.array(args))
 
+  #def L(self, args):
+  #  if self.isfirst and is_on_visible_side():
+  #    self.outfunc("M {} {} ".format( self.currpoint[0], self.currpoint[1]) )
+  #  self.outfunc("L {} {} ".format(args[0], args[1]) )
+
+  def beginDraw(self):
+    if (np.dot(self.currpoint, self.plane[0]) > 0):
+      if self.isfirst:
+        self.outfunc("M {} {} ".format( self.currpoint[0], self.currpoint[1]))
+        self.isfirst = False
+        return True
+    else:
+      return False
+  
+  def param_line_root(self, p0, p1):
+    pd = p1 - p0
+    poly = np.dot(self.plane[0], np.array([p0, pd]).T)
+    poly[0] = poly[0] -self.plane[1]
+    if poly[1] != 0:
+      t = -1*(poly[0]/poly[1] )
+      if t >0 and t < 1:
+        return p0 + pd*t
+      else:
+        return None
+    else:
+      return None
+  
+  def preline(self, p1):
+    p0 = self.currpoint
+    drawing = self.beginDraw()
+    p = self.param_line_root(p0, p1)
+    if p is not None:
+      if drawing:
+        drawing = False
+        self.outfunc("L {} {} ".format( p[0], p[1]))
+      else:
+        drawing = True
+        if self.isfirst:
+          self.outfunc("M {} {} ".format( p[0], p[1]))
+        else:
+          self.outfunc("L {} {} ".format( p[0], p[1]))
+    return drawing
+          
   def L(self, args):
-    if self.isfirst and is_on_visible_side():
-      self.outfunc("M {} {} ".format( self.currpoint[0], self.currpoint[1]) )
-    self.outfunc("L {} {} ".format(args[0], args[1]) )
-
+    if self.preline(np.array(args)):
+      self.outfunc("L {} {} ".format( args[0], args[1]))
+  
+  def z(self, args):
+    self.preline(self.firstpoint)
+    self.outfunc("z ")
+  
+  def Z(self, args):
+    self.z(args)
+    
   def l(self, args):
-    self.L(self.currpoint + np.array(args))
-
+    self.L(np.array(args) + self.currpoint)
+    
+  def C(self, args):
+    p0 = self.currpoint
+    p1 = [args[0],args[1]]
+    p2 = [args[2],args[3]]
+    p3 = [args[4],args[5]]
+    tailbez = np.mat([p0,p1,p2,p3])
+    
+    drawing = self.beginDraw()
+    param_matrix = CMATRIX*cpoints
+    for t in self.roots(param_matrix):
+      p = poly.polyval(t, param_matrix)
+      if drawing:
+        drawing = False
+        headbez, tailbez = splitbezier(cpoints, t)
+        self.outfunc("C {} {} {} {} {} {}".format( tailbez[0], tailbez[1], tailbez[2], tailbez[3], tailbez[4], tailbez[5]))
+      else:
+        drawing = True
+        if self.isfirst:
+          self.outfunc("M {} {} ".format( p[0], p[1]))
+        else:
+          self.outfunc("L {} {} ".format( p[0], p[1]))
+    if (drawing):
+      self.outfunc("C {} {} {} {} {} {}".format( tailbez[0], tailbez[1], tailbez[2], tailbez[3], tailbez[4], tailbez[5]))
+      
+  
+      
+  #param_matrix é a matriz da funcao parametrica, 4elm de 2 cada, em termos absolutos
+  def roots(self, param_matrix):
+    poly = np.asarray(self.plane[0]*param_matrix)[0]
+    poly[0] = poly[0] - self.plane[1]
+    roots = sorted(poly.roots())
+    return (t for t in roots if t > 0.0 and t < 1.0 and imag(t) == 0)
+  
   def z(self, args):
     if not self.isfirst:
       outfile.write("z")
@@ -69,12 +118,8 @@ class path_clipper:
   def Z(self, args):
     self.z(args)
 
-  def out_connectpoint():
-    
-  #vec_poly eh um poly de vetores, representando a funcao parametrica de t (uma matrix 2 x n)
-  def intersect_poly(self, vec_poly):
-    parampoly = self.plane[0]*vec_poly
-    roots = np.polynomial.polynomial.polyroots(parampoly)
+  
+	
     
 
 PATH_COMMAND = {
@@ -104,18 +149,21 @@ def parse_d(d, sink):
       currcommand = PATH_COMMAND[currcommand]['next']      
       nargs = PATH_COMMAND[currcommand]['nargs']
   
-d = "m 0 0.5 L 1 0 z"
+
+def parse_matrix():
+  
+  
+  d = "m 0 0.5 l 1 0 z"
 plane = [[1,-1], 0]
 
 parse_d(d, path_clipper(plane, sys.stdout.write))
-print()
 #main
 
 #argumento tem arquivo com as retas
 
 
-#for l in sys.stdin:
-#  path_id, path_d, path_matrix = parse_path(l)
+for l in sys.stdin:
+  path_id, path_matrix, path_d = parse_path(l)
 
 
 
