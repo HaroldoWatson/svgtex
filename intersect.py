@@ -1,6 +1,5 @@
 import numpy as np
 import sys
-poly = np.polynomial.polynomial
 
 CMATRIX = np.array([[1,0,0,0], [-3,3,0,0], [3,-6,3,0], [-1,3,-3,1]])
 QMATRIX = np.array([[1,0,0],[-2,2,0],[1,-2,1]])
@@ -150,9 +149,7 @@ def parse_d(d, sink):
       nargs = PATH_COMMAND[currcommand]['nargs']
   
 
-def parse_matrix():
-  
-  
+def parse_line():
   d = "m 0 0.5 l 1 0 z"
 plane = [[1,-1], 0]
 
